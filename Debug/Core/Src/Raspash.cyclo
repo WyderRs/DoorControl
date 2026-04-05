@@ -1,4 +1,8 @@
-../Core/Src/Raspash.c:20:6:Raspash_Init	1
-../Core/Src/Raspash.c:34:6:Raspash_Loop	1
-../Core/Src/Raspash.c:81:6:HAL_GPIO_EXTI_Callback	1
-../Core/Src/Raspash.c:124:6:HAL_TIM_PeriodElapsedCallback	1
+../Core/Src/Raspash.c:17:7:Motor_Start	3
+../Core/Src/Raspash.c:32:7:Motor_Stop	1
+../Core/Src/Raspash.c:41:6:Motor_PWM	4
+../Core/Src/Raspash.c:62:6:Motor_Dir	1
+../Core/Src/Raspash.c:66:6:Raspash_Init	1
+../Core/Src/Raspash.c:79:6:Raspash_Loop	1
+../Core/Src/Raspash.c:126:6:HAL_GPIO_EXTI_Callback	4
+../Core/Src/Raspash.c:182:6:HAL_TIM_PeriodElapsedCallback	2
