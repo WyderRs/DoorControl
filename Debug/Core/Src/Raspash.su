@@ -1,8 +1,9 @@
-../Core/Src/Raspash.c:17:7:Motor_Start	8	static
-../Core/Src/Raspash.c:32:7:Motor_Stop	8	static
-../Core/Src/Raspash.c:41:6:Motor_PWM	16	static
-../Core/Src/Raspash.c:62:6:Motor_Dir	16	static
-../Core/Src/Raspash.c:66:6:Raspash_Init	8	static
-../Core/Src/Raspash.c:79:6:Raspash_Loop	8	static
-../Core/Src/Raspash.c:126:6:HAL_GPIO_EXTI_Callback	16	static
-../Core/Src/Raspash.c:182:6:HAL_TIM_PeriodElapsedCallback	16	static
+../Core/Src/Raspash.c:22:7:Motor_Speed	16	static
+../Core/Src/Raspash.c:31:7:Motor_Start	8	static
+../Core/Src/Raspash.c:46:7:Motor_Stop	8	static
+../Core/Src/Raspash.c:55:6:Motor_PWM	16	static
+../Core/Src/Raspash.c:76:6:Motor_Dir	16	static
+../Core/Src/Raspash.c:80:6:Raspash_Init	8	static
+../Core/Src/Raspash.c:116:6:Raspash_Loop	8	static
+../Core/Src/Raspash.c:163:6:HAL_GPIO_EXTI_Callback	16	static
+../Core/Src/Raspash.c:220:6:HAL_TIM_PeriodElapsedCallback	24	static

@@ -14,6 +14,20 @@ extern TIM_HandleTypeDef htim4;
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim3;
 
+Motor_main_t motor;
+
+
+
+
+_Bool Motor_Speed(float sp) {
+
+	motor.motor_encoder.enc				= (uint32_t)sp * 20 * 5.18;
+	motor.motor_encoder.time_per_trg	= 1000.0;
+
+	motor.pid_reg.Vtg 					= ((float)motor.motor_encoder.enc / motor.motor_encoder.time_per_trg);
+	return 0;
+}
+
 _Bool Motor_Start() {
 
 	/* Если показатель скважности ШИМ равен нулю на обоих линиях */
@@ -42,25 +56,25 @@ void Motor_PWM(uint32_t p) {
 	/* Проверка */
 	if (p >= 100) p = 100;
 
-	if (Motor_main.side_rot == rp_OPEN) {
+	if (motor.side_rot == rp_OPEN) {
 		/* Устанавливаем скважность ШИМ */
 		htim1.Instance->CCR1 = p;
 		htim1.Instance->CCR2 = 0;
 	}
-	else if (Motor_main.side_rot == rp_CLOSE) {
+	else if (motor.side_rot == rp_CLOSE) {
 		/* Устанавливаем скважность ШИМ */
 		htim1.Instance->CCR1 = 0;
 		htim1.Instance->CCR2 = p;
 	}
-	else if (Motor_main.side_rot == rp_STOP) {
+	else if (motor.side_rot == rp_STOP) {
 		/* Устанавливаем скважность ШИМ */
 //		htim1.Instance->CCR1 = 0;
 //		htim1.Instance->CCR2 = 0;
 	}
-	Motor_main.duty = p;
+	motor.duty = p;
 }
-void Motor_Dir(MoveSide sd) {
-	Motor_main.side_rot = sd;
+void Motor_Dir(MoveSide_t sd) {
+	motor.side_rot = sd;
 }
 
 void Raspash_Init() {
@@ -70,7 +84,30 @@ void Raspash_Init() {
 //	HAL_TIM_Base_Start_IT(&htim3);
 
 
-	Motor_main.side_rot = rp_OPEN;
+	motor.pid_reg.Kp = 0.1;
+
+
+	motor.side_rot = rp_OPEN;
+
+
+
+	HAL_Delay(1000);
+	Motor_Speed(20.0);
+	Motor_Dir(rp_OPEN);
+	htim1.Instance->CCR1 	= 10;
+	motor.duty 				= 10;
+	Motor_Start();
+
+	while(1)
+	{
+		LED_IND1_G(1);
+		HAL_Delay(100);
+		LED_IND2_Y(1);
+		HAL_Delay(100);
+		LED_IND3_R(1);
+		HAL_Delay(100);
+	}
+
 
 	HAL_Delay(1000);
 
@@ -132,15 +169,16 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	/* Обработчик энкодера  */
 	else if (GPIO_Pin == GPIO_PIN_0) {
 		if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_7) == GPIO_PIN_SET) {
-//			SpeedCounter.t2 	= SpeedCounter.cnt;
-//			SpeedCounter.t1_t2 	= SpeedCounter.t2 - SpeedCounter.t1;
-			/* НЕПРАВИЛЬНО РАСЧИТАН, УЧТИ ИМПУЛЬСЫ И ВРЕМЯ МЕЖДУ ИМПУЛЬСАМИ А ТАКЖЕ ПЕРЕВЕДИ ВСЕ В СКОРОСТЬ */
-//			PID_Reg.E_dif 		= SpeedCounter.t1_t2;
-//			PID_Reg.Rp 			= PID_Reg.Kp * PID_Reg.E_dif;
-			/* Применяем значение регулирования */
-			Motor_PWM(Motor_main.duty + PID_Reg.Rp);
-			/************************************/
-			SpeedCounter.t1 	= SpeedCounter.t2;
+
+			if (motor.motor_encoder.enc >= 20) {
+				motor.motor_encoder.t2 = motor.speedCounter.cnt;
+				motor.motor_encoder.dt = motor.motor_encoder.t2 - motor.motor_encoder.t1;
+
+				motor.motor_encoder.enc = 0;
+			}
+			motor.motor_encoder.t1 = motor.motor_encoder.t2;
+			motor.motor_encoder.enc++;
+			LED_LG_1(1);
 		}
 		else {
 
@@ -184,8 +222,33 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	/* Таймер отвечающий за контроль и изменение параметров и переменных */
 	if (htim == &htim4)
 	{
-		/* Добавляем по 1 каждую 1 мс */
-		SpeedCounter.cnt++;
+		if (motor.speedCounter.cnt_sup >= 1) // 10ms / 100
+		{
+			if ((motor.motor_encoder.enc > 0) && (motor.motor_encoder.t1 > 0)) {
+//				motor.motor_encoder.dt 			= motor.motor_encoder.t2 - motor.motor_encoder.t1;
+				motor.pid_reg.Vcr 				= (/*motor.motor_encoder.enc*/ 1000.0 * 1.0 / (10.0 * motor.motor_encoder.dt + 0.0000001));
+				motor.pid_reg.E_dif 			= motor.pid_reg.Vtg - motor.pid_reg.Vcr;
+				motor.pid_reg.Rp				= motor.pid_reg.Kp * motor.pid_reg.E_dif;
+
+
+				float temp 						= motor.duty + motor.pid_reg.Rp;
+
+				if (temp >= 100) temp 			= 100;
+				else if (temp <= 3) temp 		= 3;
+				else  temp 						= temp;
+	//			/* Применяем значение регулирования */
+				Motor_PWM(temp);
+
+
+//				motor.motor_encoder.enc 		= 0;
+				motor.speedCounter.cnt_sup		= 0;
+			}
+//			/************************************/
+		}
+//
+//		/* Добавляем по 1 каждую 10 us */
+		motor.speedCounter.cnt++;
+		motor.speedCounter.cnt_sup++;
 	}
 	else if (htim == &htim3)
 	{

@@ -11,6 +11,8 @@
 
 #include "stm32f1xx_hal.h"
 
+/* Передаточное число редуктора */
+#define REDUCTOR_RATIO			1160
 /* Светодиоды отладки */
 #define LED_LG_1(X)				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, X)
 #define LED_LG_2(X)				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, X)
@@ -33,18 +35,27 @@ typedef enum MoveSide {
 	rp_STOP = 0,
 	rp_OPEN,
 	rp_CLOSE,
-} MoveSide;
-
-struct SpeedCounter {
-	uint32_t cnt;
+} MoveSide_t;
+typedef struct Motor_encoder {
 	//****************//
-	uint32_t enc;
+	float enc;				// Число импульсов энкодера
+	float dt;			// Ширина импульса
+	float time_per_trg;	// Ширина импульса заданная
 
-	uint32_t t1;
-	uint32_t t2;
-	uint32_t t1_t2;		// Разница между t1 и t2
-} SpeedCounter;
-struct PID_Reg {
+	uint32_t t1;			// Метка времени импульса 1
+	uint32_t t2;			// Метка времени импульса 2
+} Motor_encoder_t;
+typedef struct SpeedCounter {
+	uint32_t cnt;			// Счетчик таймера
+	uint32_t cnt_sup;		// Вспомогательная переменная
+
+} SpeedCounter_t;
+typedef struct PID_Reg {
+	/* Регулирование по скорости */
+	float Vtg;	/* Скорость вращения установленная */
+	float Vcr;	/* Скорость вращения текущая */
+
+
 	float E_dif;		// Ошибка (разница)
 
 	float Kp;			// Коеф. пропорциональный
@@ -55,13 +66,15 @@ struct PID_Reg {
 	float Ri;
 	float Rd;
 
-} PID_Reg;
+} PID_Reg_t;
 
-struct Motor_main {
-	MoveSide side_rot;	/* Текущий тип движения */
-	uint32_t duty;		/* Текущая скважность */
-
-} Motor_main ;
+typedef struct Motor_main {
+	MoveSide_t 		side_rot;				/* Текущий тип движения */
+	uint32_t 		duty;					/* Текущая скважность */
+	Motor_encoder_t motor_encoder;			/* Структура энкодера*/
+	PID_Reg_t		pid_reg;				/* Структура PID регулятора*/
+	SpeedCounter_t	speedCounter;			/* Структура таймера расчетов*/
+} Motor_main_t;
 
 
 

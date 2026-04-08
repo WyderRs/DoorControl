@@ -101,6 +101,7 @@ int main(void)
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 
+
   Raspash_Init();
 
 
@@ -364,9 +365,9 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 720-1;
+  htim4.Init.Prescaler = 72-1;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 100-1;
+  htim4.Init.Period = 10-1;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
@@ -436,21 +437,27 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : MOTOR_ENC_2_Pin */
   GPIO_InitStruct.Pin = MOTOR_ENC_2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(MOTOR_ENC_2_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : MOTOR_ENC_1_Pin INPUT_APS2_Pin INPUT_APS1_Pin INPUT_APS_Pin
-                           INPUT_NIGHT_BANK_Pin INPUT_POS2_Pin INPUT_POS1_Pin */
-  GPIO_InitStruct.Pin = MOTOR_ENC_1_Pin|INPUT_APS2_Pin|INPUT_APS1_Pin|INPUT_APS_Pin
-                          |INPUT_NIGHT_BANK_Pin|INPUT_POS2_Pin|INPUT_POS1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  /*Configure GPIO pin : MOTOR_ENC_1_Pin */
+  GPIO_InitStruct.Pin = MOTOR_ENC_1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(MOTOR_ENC_1_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : MODE_1_Pin MODE_2_Pin */
   GPIO_InitStruct.Pin = MODE_1_Pin|MODE_2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : INPUT_APS2_Pin INPUT_APS1_Pin INPUT_APS_Pin INPUT_NIGHT_BANK_Pin
+                           INPUT_POS2_Pin INPUT_POS1_Pin */
+  GPIO_InitStruct.Pin = INPUT_APS2_Pin|INPUT_APS1_Pin|INPUT_APS_Pin|INPUT_NIGHT_BANK_Pin
+                          |INPUT_POS2_Pin|INPUT_POS1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
