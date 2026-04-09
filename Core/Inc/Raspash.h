@@ -12,7 +12,7 @@
 #include "stm32f1xx_hal.h"
 
 /* Передаточное число редуктора */
-#define REDUCTOR_RATIO			1160
+#define REDUCTOR_COEF			5.18
 /* Светодиоды отладки */
 #define LED_LG_1(X)				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, X)
 #define LED_LG_2(X)				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, X)
@@ -39,8 +39,9 @@ typedef enum MoveSide {
 typedef struct Motor_encoder {
 	//****************//
 	float enc;				// Число импульсов энкодера
-	float dt;			// Ширина импульса
-	float time_per_trg;	// Ширина импульса заданная
+	float enc_trg;			// Число импульсов энкодера установленное
+	float dt;				// Ширина импульса
+	float time_per_trg;		// Ширина импульса заданная
 
 	uint32_t t1;			// Метка времени импульса 1
 	uint32_t t2;			// Метка времени импульса 2

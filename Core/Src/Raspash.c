@@ -17,14 +17,21 @@ extern TIM_HandleTypeDef htim3;
 Motor_main_t motor;
 
 
+float temp; // DELETE!
 
 
 _Bool Motor_Speed(float sp) {
 
-	motor.motor_encoder.enc				= (uint32_t)sp * 20 * 5.18;
-	motor.motor_encoder.time_per_trg	= 1000.0;
+	motor.motor_encoder.enc_trg			= sp * REDUCTOR_COEF;
+	motor.motor_encoder.time_per_trg	= 1.0;
 
-	motor.pid_reg.Vtg 					= ((float)motor.motor_encoder.enc / motor.motor_encoder.time_per_trg);
+//	motor.pid_reg.Vtg 					= ((float)motor.motor_encoder.enc_trg / motor.motor_encoder.time_per_trg);
+//	motor.pid_reg.Vtg					= sp * 5.18;
+
+	motor.pid_reg.Vtg					= REDUCTOR_COEF * sp * 360.0;
+
+
+
 	return 0;
 }
 
@@ -40,6 +47,8 @@ _Bool Motor_Start() {
 		/* Запускаем генерацию импульсов */
 		HAL_TIM_PWM_Start_IT(&htim1, TIM_CHANNEL_1);
 		HAL_TIM_PWM_Start_IT(&htim1, TIM_CHANNEL_2);
+		/* Чистим значение энкодера */
+		motor.motor_encoder.enc = 0;
 	}
 	return 1;
 }
@@ -84,19 +93,22 @@ void Raspash_Init() {
 //	HAL_TIM_Base_Start_IT(&htim3);
 
 
-	motor.pid_reg.Kp = 0.1;
+	motor.pid_reg.Kp = 0.05;
 
 
 	motor.side_rot = rp_OPEN;
 
 
-
+	HAL_NVIC_DisableIRQ(EXTI0_IRQn);
 	HAL_Delay(1000);
-	Motor_Speed(20.0);
+	Motor_Speed(10);
 	Motor_Dir(rp_OPEN);
 	htim1.Instance->CCR1 	= 10;
 	motor.duty 				= 10;
 	Motor_Start();
+	HAL_Delay(100);
+
+	HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 
 	while(1)
 	{
@@ -170,15 +182,25 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	else if (GPIO_Pin == GPIO_PIN_0) {
 		if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_7) == GPIO_PIN_SET) {
 
-			if (motor.motor_encoder.enc >= 20) {
-				motor.motor_encoder.t2 = motor.speedCounter.cnt;
-				motor.motor_encoder.dt = motor.motor_encoder.t2 - motor.motor_encoder.t1;
+//			motor.motor_encoder.t2 = motor.speedCounter.cnt;
+//			if ((motor.motor_encoder.t2 > motor.motor_encoder.t1) && ((motor.motor_encoder.t2 - motor.motor_encoder.t1) > 60)) {
+//				motor.motor_encoder.dt = 10.0 * (motor.motor_encoder.t2 - motor.motor_encoder.t1);
+//				motor.motor_encoder.t1 = motor.motor_encoder.t2;
+//			}
+//			motor.motor_encoder.enc++;
 
-				motor.motor_encoder.enc = 0;
+
+			motor.motor_encoder.t2 = motor.speedCounter.cnt;
+			if ((motor.motor_encoder.t2 > motor.motor_encoder.t1) && ((motor.motor_encoder.t2 - motor.motor_encoder.t1) > 60)) {
+				motor.motor_encoder.dt = 10.0 * (motor.motor_encoder.t2 - motor.motor_encoder.t1);
+				motor.motor_encoder.t1 = motor.motor_encoder.t2;
 			}
-			motor.motor_encoder.t1 = motor.motor_encoder.t2;
 			motor.motor_encoder.enc++;
+
+			__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_0);
+
 			LED_LG_1(1);
+
 		}
 		else {
 
@@ -222,27 +244,49 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	/* Таймер отвечающий за контроль и изменение параметров и переменных */
 	if (htim == &htim4)
 	{
-		if (motor.speedCounter.cnt_sup >= 1) // 10ms / 100
+		if (motor.speedCounter.cnt_sup >= 100) // 10ms / 100
 		{
+//			if ((motor.motor_encoder.enc > 0) && (motor.motor_encoder.t1 > 0)) {
+//				motor.pid_reg.Vcr 				= (1000.0 * 1000.0 * 1.0 / (20.0 * (motor.motor_encoder.dt + 0.0000001)));
+//				motor.pid_reg.E_dif 			= motor.pid_reg.Vtg - motor.pid_reg.Vcr;
+//				motor.pid_reg.Rp				= motor.pid_reg.Kp * motor.pid_reg.E_dif;
+//				temp 							= motor.duty + motor.pid_reg.Rp;
+//				if (temp >= 100) temp 			= 100;
+//				else if (temp <= 3) temp 		= 3;
+//				else  temp 						= temp;
+////	//			/* Применяем значение регулирования */
+//				Motor_PWM(temp);
+
+
+
 			if ((motor.motor_encoder.enc > 0) && (motor.motor_encoder.t1 > 0)) {
-//				motor.motor_encoder.dt 			= motor.motor_encoder.t2 - motor.motor_encoder.t1;
-				motor.pid_reg.Vcr 				= (/*motor.motor_encoder.enc*/ 1000.0 * 1.0 / (10.0 * motor.motor_encoder.dt + 0.0000001));
+				motor.pid_reg.Vcr 				= (motor.motor_encoder.enc * 1000.0 * 1000.0 * 18.0)
+						/ (motor.motor_encoder.dt + 0.0000001);
 				motor.pid_reg.E_dif 			= motor.pid_reg.Vtg - motor.pid_reg.Vcr;
 				motor.pid_reg.Rp				= motor.pid_reg.Kp * motor.pid_reg.E_dif;
-
-
-				float temp 						= motor.duty + motor.pid_reg.Rp;
+				temp 							= motor.duty + motor.pid_reg.Rp;
 
 				if (temp >= 100) temp 			= 100;
 				else if (temp <= 3) temp 		= 3;
 				else  temp 						= temp;
-	//			/* Применяем значение регулирования */
+//	//			/* Применяем значение регулирования */
 				Motor_PWM(temp);
-
-
-//				motor.motor_encoder.enc 		= 0;
-				motor.speedCounter.cnt_sup		= 0;
+				motor.motor_encoder.enc = 0;
 			}
+
+
+
+
+
+
+
+
+
+
+
+
+
+//			}
 //			/************************************/
 		}
 //
